@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="../Tests/Tests.csproj" />
+  <Project Path="BeamFEM.csproj" />
+  <Project Path="Telma/Telma.csproj" />
+</Solution>
