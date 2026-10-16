@@ -8,12 +8,12 @@ namespace BeamFEM.Topology
     public class TopologyStructer
     {
        //Ширина-Высота
-       public  int Lx;
-       public  int Ly;
+       public int Lx { get; set; }
+       public  int Ly { get; set; }
 
-       //Количество узлов сетки вдоль X, вдоль Y
-       public  int Nx;
-       public  int Ny;
+        //Количество узлов сетки вдоль X, вдоль Y
+        public  int Nx { get; set; }
+        public  int Ny { get; set; }
     }       
 
     public class TopologyReader 
