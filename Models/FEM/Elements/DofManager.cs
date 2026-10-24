@@ -1,9 +1,12 @@
-﻿using System;
+﻿using BeamFEM.Models.FEM.Mesh;
+using BeamFEM.Models.FEM.Problem;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using Telma.Extensions;
 
-namespace BeamFEM.Models.FEM.DofManager;
+namespace BeamFEM.Models.FEM.Elements;
 
 public interface IDofManager
 {
@@ -18,7 +21,7 @@ public interface IDofManager
 }
 
 
-public abstract class DofManagerSys(
+public abstract class DofManager(
     int dofCount
 ) : IDofManager
 {
@@ -48,3 +51,5 @@ public abstract class DofManagerSys(
     protected void AssertIsValidElementDofNumber(int n)
         => Debug.Assert(0 <= n && n < NumberOfDofOnElement);
 }
+
+

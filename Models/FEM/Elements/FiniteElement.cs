@@ -1,0 +1,69 @@
+﻿using BeamFEM.Models.Core.IBasis;
+using BeamFEM.Models.FEM.Mesh;
+using System;
+using System.Collections.Generic;
+using System.Text;
+using Telma.Extensions;
+
+namespace BeamFEM.Models.FEM.Elements;
+
+public sealed record FiniteElementBase<TSpace>(
+    IElementGeometryBase<TSpace> Geometry,
+    IDofManager DOF
+) where TSpace : IVectorBase<TSpace>;
+
+public interface IFiniteElementBase<TSpace, TBoundary>
+    where TSpace : IVectorBase<TSpace>
+    where TBoundary : IVectorBase<TBoundary>
+{
+    IElementGeometry<TSpace, TBoundary> Geometry { get; }
+    IDofManager DOF { get; }
+    IBasisSet<TBoundary> BasisSet { get; }
+}
+
+public interface IFiniteElement<TSpace> : IFiniteElementBase<TSpace, TSpace>
+    where TSpace : IVectorBase<TSpace>
+{
+    int MaterialIndex { get; }
+}
+
+public interface IBoundaryElement<TSpace, TBoundary> : IFiniteElementBase<TSpace, TBoundary>
+    where TSpace : IVectorBase<TSpace>
+    where TBoundary : IVectorBase<TBoundary>
+{
+    int BoundaryIndex { get; }
+}
+
+
+public interface IFiniteElementFactory<TSpace>
+    where TSpace : IVectorBase<TSpace>
+{
+    IFiniteElement<TSpace> CreateElement(IMesh<TSpace> mesh, int[] vertices, int materialIndex);
+}
+
+
+public interface IBoundaryElementFactory<TSpace, TBoundary>
+    where TSpace : IVectorBase<TSpace>
+    where TBoundary : IVectorBase<TBoundary>
+{
+    IBoundaryElement<TSpace, TBoundary> CreateBoundary(IMesh<TSpace> mesh, int[] vertices, int boundaryIndex);
+}
+
+
+public sealed record class VolumeElement<TSpace>(
+    IElementGeometry<TSpace, TSpace> Geometry,
+    IDofManager DOF,
+    IBasisSet<TSpace> BasisSet,
+    int MaterialIndex
+) : IFiniteElement<TSpace>
+    where TSpace : IVectorBase<TSpace>;
+
+
+public sealed record class FiniteElement<TSpace, TBoundary>(
+    IElementGeometry<TSpace, TBoundary> Geometry,
+    IDofManager DOF,
+    IBasisSet<TBoundary> BasisSet,
+    int BoundaryIndex
+) : IBoundaryElement<TSpace, TBoundary>
+    where TSpace : IVectorBase<TSpace>
+    where TBoundary : IVectorBase<TBoundary>;

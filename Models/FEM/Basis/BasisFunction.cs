@@ -1,5 +1,4 @@
-﻿
-using Splat.ModeDetection;
+﻿using Splat.ModeDetection;
 using System;
 using System.Collections.Generic;
 using System.Text;

@@ -24,3 +24,15 @@ public readonly struct BasisSet<TSpace>(
     public ReadOnlySpan<IBasisFunction<TSpace>> Basis => _basis;
 }
 
+public sealed class MutableBasisSet<TSpace>(
+    Func<IEnumerable<Quadratures.Node<TSpace>>> quadratures,
+    params IBasisFunction<TSpace>[] basis
+) : IBasisSet<TSpace>
+    where TSpace : IVectorBase<TSpace>
+{
+    public IEnumerable<Quadratures.Node<TSpace>> Quadratures => quadratures();
+    private IBasisFunction<TSpace>[] _basis = basis;
+    public ReadOnlySpan<IBasisFunction<TSpace>> Basis => _basis;
+    public Span<IBasisFunction<TSpace>> MutableBasis => _basis;
+}
+
