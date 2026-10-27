@@ -78,3 +78,4 @@ global using VolumeElementGeometry3D = BeamFEM.Models.FEM.Elements.ElementGeomet
 
 global using BoundaryElementGeometry2D = BeamFEM.Models.FEM.Elements.ElementGeometry<Telma.Vector2D, Telma.Vector1D>;
 global using BoundaryElementGeometry3D = BeamFEM.Models.FEM.Elements.ElementGeometry<Telma.Vector3D, Telma.Vector2D>;
+

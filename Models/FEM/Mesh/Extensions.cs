@@ -3,6 +3,7 @@ using BeamFEM.Models.FEM.Problem;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Linq;
 using Telma.Extensions;
 
 namespace BeamFEM.Models.FEM.Mesh;

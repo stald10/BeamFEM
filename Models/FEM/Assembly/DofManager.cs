@@ -2,6 +2,7 @@
 using BeamFEM.Models.FEM.Problem;
 using BeamFEM.Models.FEM.Mesh;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;

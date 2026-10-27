@@ -1,7 +1,8 @@
 ﻿using BeamFEM.Models.Core.CoordinateSystem;
 using BeamFEM.Models.FEM.Elements;
 using BeamFEM.Topology;
-using System.Xml.Linq;
+using System.Collections.Generic;
+using System.Linq;
 using Telma;
 using Telma.Extensions;
 
