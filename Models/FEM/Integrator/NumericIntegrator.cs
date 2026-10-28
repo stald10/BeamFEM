@@ -3,8 +3,105 @@ using BeamFEM.Models.FEM.Elements;
 using BeamFEM.Models.Core.CoordinateSystem;
 using BeamFEM.Models.Core.Matrix;
 using System;
+using Telma;
+using System.Reflection.Metadata;
+using System.Reflection.Metadata.Ecma335;
 
 namespace BeamFEM.Models.FEM.Integrator;
+
+public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TBoundary, TOps>
+        where TSpace : IVectorBase<TSpace>
+        where TBoundary : IVectorBase<TBoundary>
+        where TOps : IMatrixOperations<TSpace, TSpace, TOps>
+{
+    private NumericIntegratorTensor() { }
+    public static readonly NumericIntegratorTensor<TSpace, TBoundary, TOps> Instance = new();
+
+
+    public void CalculateLocalLoad(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> source, Span<double> outLoad)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void CalculateLocalLoad(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> source, Span<double> outLoad)
+    {
+        throw new NotImplementedException();
+    }
+
+    public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> gamma)
+    {
+        throw new NotImplementedException();
+    }
+
+    public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> gamma)
+    {
+        throw new NotImplementedException();
+    }
+
+    public LocalMatrix CalculateLocalStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> lambda)
+    {
+        int n = element.DOF.Count;
+        var stiffness = new LocalMatrix(n);
+
+        var masterCs = element.MasterElementCoordinateSystem;
+        var meshCs = element.Mesh.CoordinateSystem;
+
+        var masterInvJ = masterCs.InverseJacoby();
+        var meshInvJ = meshCs.InverseJacoby();
+
+
+        double[][] C = new double[3][];
+        for (int i = 0; i < 3; ++i)
+        {
+            C[i] = new double[3];
+        }
+
+        double E = 1e+6;
+        double poisson = 1e+3;
+
+        double _E = E / (1 - poisson * poisson);
+
+        C[0][0] = _E;
+        C[0][1] = poisson * _E;
+
+        C[1][0] = C[0][1];
+        C[1][1] = C[0][0];
+
+        C[2][2] = E / (2 * (1 + poisson));
+
+        double[][] B = new double[3][];
+
+        for (int i = 0; i < 3; ++i)
+        {
+            B[i] = new double[n];
+        }
+
+        for (int i = 0; i < n/2; ++i)
+        {
+            double valX = 0;
+            double valY = 0;
+            foreach (var q in element.Quadratures)
+            {
+                var ep = q.Point;
+                var shape = element.Basis[i].Derivatives(ep);
+
+                if (shape is Vector2D deriv) {valX += deriv.X; valY += deriv.Y;}
+
+            }
+
+            B[0][2 * i] = valX;
+            B[1][2 * i + 1] = valY;
+
+            B[2][2 * i + 1] = valX;
+            B[2][2 * i] = valY;
+        }
+
+
+        return stiffness;
+    }   
+}
+
+
 
 public class NumericIntegrator<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TBoundary, TOps>
     where TSpace : IVectorBase<TSpace>
@@ -28,6 +125,10 @@ public class NumericIntegrator<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TB
         var masterInvJ = masterCs.InverseJacoby();
         var meshInvJ = meshCs.InverseJacoby();
 
+
+
+
+
         for (int i = 0; i < n; i++)
         {
             for (int j = 0; j <= i; j++)
@@ -40,6 +141,8 @@ public class NumericIntegrator<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TB
                     var invJ = masterInvJ.MulAt<TSpace, TSpace, TSpace, TOps>(ep, meshInvJ, mp);
                     var gradPhiI = element.Basis[i].Derivatives(ep);
                     var gradPhiJ = element.Basis[j].Derivatives(ep);
+
+                    var str = gradPhiI.GetType();
 
                     // product = grad(phi_i)^T * J^(-T) * J(-1) * grad(phi_j)
                     var product = (gradPhiI * invJ) * (gradPhiJ * invJ);
