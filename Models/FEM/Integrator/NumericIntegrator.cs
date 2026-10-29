@@ -41,6 +41,13 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
     public LocalMatrix CalculateLocalStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> lambda)
     {
         int n = element.DOF.Count;
+
+        double E = 1e+6;
+        double poisson = 1e+3;
+        double _E = E / (1 - poisson * poisson);
+
+        var matrixD = new TensorMatrix(3, 3);
+        var matrixB = new TensorMatrix(3, 20);
         var stiffness = new LocalMatrix(n);
 
         var masterCs = element.MasterElementCoordinateSystem;
@@ -49,25 +56,18 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
         var masterInvJ = masterCs.InverseJacoby();
         var meshInvJ = meshCs.InverseJacoby();
 
+        matrixD[0, 0] = 1;
+        matrixD[0, 1] = poisson;
+        matrixD[1, 0] = matrixD[0, 1];
+        matrixD[1, 1] = matrixD[0, 0];
+        matrixD[2, 2] = 0;
 
-        double[][] C = new double[3][];
-        for (int i = 0; i < 3; ++i)
-        {
-            C[i] = new double[3];
-        }
+        matrixD *= _E;
 
-        double E = 1e+6;
-        double poisson = 1e+3;
+        matrixD[2, 2] = E / (2 * (1 + poisson));
 
-        double _E = E / (1 - poisson * poisson);
 
-        C[0][0] = _E;
-        C[0][1] = poisson * _E;
 
-        C[1][0] = C[0][1];
-        C[1][1] = C[0][0];
-
-        C[2][2] = E / (2 * (1 + poisson));
 
         double[][] B = new double[3][];
 
@@ -83,7 +83,11 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
             foreach (var q in element.Quadratures)
             {
                 var ep = q.Point;
+                var mp = masterCs.InverseTransform(ep); 
+                var invJ = masterInvJ.MulAt<TSpace, TSpace, TSpace, TOps>(ep, meshInvJ, mp);
                 var shape = element.Basis[i].Derivatives(ep);
+
+                var shapeNatural = invJ * shape;
 
                 if (shape is Vector2D deriv) {valX += deriv.X; valY += deriv.Y;}
 
@@ -124,10 +128,6 @@ public class NumericIntegrator<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TB
 
         var masterInvJ = masterCs.InverseJacoby();
         var meshInvJ = meshCs.InverseJacoby();
-
-
-
-
 
         for (int i = 0; i < n; i++)
         {
