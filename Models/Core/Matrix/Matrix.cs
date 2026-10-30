@@ -22,7 +22,7 @@ public sealed class TensorMatrix(int n1, int n2) : IMatrix
     public int Column { get; } = n2;
 
     private double[] _val = new double[n1 * n2];
-    public double this[int i, int j] { get => _val[i * n1 + j]; set => _val[i * n1 + j] = value; }
+    public double this[int i, int j] { get => _val[i * n2 + j]; set => _val[i * n2 + j] = value; }
     
     public double this[int i] { get => _val[i]; set => _val[i] = value; }
 
@@ -47,17 +47,17 @@ public sealed class TensorMatrix(int n1, int n2) : IMatrix
     public static TensorMatrix operator *(TensorMatrix A, TensorMatrix B) 
     {
         TensorMatrix Interim = new(A.Row,B.Column);
-        double val = 0;
-        for (int k = 0; k < A.Size; ++k) 
+        for (int i = 0; i < A.Row; ++i) 
         {
-            for (int i = 0; i < A.Row; ++i)
+            for (int j = 0; j < B.Column; ++j) 
             {
-                for (int j = 0; j < A.Column; ++j)
+                double val = 0.0;
+                for (int k = 0; k < A.Column; ++k) 
                 {
-                    val += A[i, j] * B[j, i];
+                    val += A[i, k] * B[k, j];
                 }
+                Interim[i, j] = val;
             }
-            Interim[k] = val;
         }
         return Interim;
     }

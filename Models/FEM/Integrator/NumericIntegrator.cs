@@ -19,35 +19,29 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
 
 
     public void CalculateLocalLoad(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> source, Span<double> outLoad)
-    {
-        throw new NotImplementedException();
-    }
+        => throw new NotSupportedException();
 
     public void CalculateLocalLoad(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> source, Span<double> outLoad)
-    {
-        throw new NotImplementedException();
-    }
+        => throw new NotSupportedException();
 
     public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> gamma)
-    {
-        throw new NotImplementedException();
-    }
+        => throw new NotSupportedException();
+
 
     public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> gamma)
-    {
-        throw new NotImplementedException();
-    }
+        => throw new NotSupportedException();
 
     public LocalMatrix CalculateLocalStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> lambda)
     {
         int n = element.DOF.Count;
 
-        double E = 1e+6;
-        double poisson = 1e+3;
+        double E = 100;
+        double poisson = 10;
         double _E = E / (1 - poisson * poisson);
 
         var matrixD = new TensorMatrix(3, 3);
         var matrixB = new TensorMatrix(3, 20);
+
         var stiffness = new LocalMatrix(n);
 
         var masterCs = element.MasterElementCoordinateSystem;
@@ -67,15 +61,6 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
         matrixD[2, 2] = E / (2 * (1 + poisson));
 
 
-
-
-        double[][] B = new double[3][];
-
-        for (int i = 0; i < 3; ++i)
-        {
-            B[i] = new double[n];
-        }
-
         for (int i = 0; i < n/2; ++i)
         {
             double valX = 0;
@@ -89,17 +74,36 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
 
                 var shapeNatural = invJ * shape;
 
-                if (shape is Vector2D deriv) {valX += deriv.X; valY += deriv.Y;}
+                if (shapeNatural is Vector2D deriv) {valX += deriv.X; valY += deriv.Y;}
 
             }
-
-            B[0][2 * i] = valX;
-            B[1][2 * i + 1] = valY;
-
-            B[2][2 * i + 1] = valX;
-            B[2][2 * i] = valY;
+            matrixB[0,2 * i] = valX;
+            matrixB[1,2 * i + 1] = valY;
+            matrixB[2,2 * i + 1] = valX;
+            matrixB[2,2 * i] = valY;
         }
 
+        var matrixBT = matrixB.Tranpose();
+
+        var BTDB = matrixBT * matrixD * matrixB;
+
+        for (int i = 0; i < n; i++)
+        {
+            for (int j = 0; j <= i; j++)
+            {
+                var value = 0.0;
+                foreach (var q in element.Quadratures)
+                {
+                    var ep = q.Point; // master element-space point
+                    var mp = masterCs.InverseTransform(ep); // mesh-space point
+                    var invJ = masterInvJ.MulAt<TSpace, TSpace, TSpace, TOps>(ep, meshInvJ, mp);
+                    var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
+                    value += lambda(mp) * BTDB[i,j] * jacobian * q.Weight;
+                }
+                stiffness[i, j] = value;
+                stiffness[j, i] = value;
+            }
+        }
 
         return stiffness;
     }   
