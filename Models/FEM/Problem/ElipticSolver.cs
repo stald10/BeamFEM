@@ -76,8 +76,7 @@ public sealed class EllipticSolver<TSpace, TBoundary, TOps>(
 
         // 3. Solve SLAE
 
-        _algebraicSolver.Matrix = globalMatrix
-        ;
+        _algebraicSolver.Matrix = globalMatrix;
         _algebraicSolver.Solve(
             rhsVector,
             dofManager.AsFreeSpan(solution),

@@ -13,9 +13,7 @@ namespace BeamFEM.Models.FEM.Problem;
 public sealed record EllipticMaterial<TSpace>(
     Func<TSpace, double> Lambda,
     Func<TSpace, double> Gamma,
-    Func<TSpace, double> Source,
-    Func<TSpace, double> Poisson,
-    Func<TSpace, double> E
+    Func<TSpace, double> Source
 ) where TSpace : IVectorBase<TSpace>;
 
 /// <summary>
