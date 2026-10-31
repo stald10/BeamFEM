@@ -16,6 +16,13 @@ public sealed record EllipticMaterial<TSpace>(
     Func<TSpace, double> Source
 ) where TSpace : IVectorBase<TSpace>;
 
+public sealed record TensorEllipticMaterial<TSpace>(
+    Func<TSpace, double> Thinkness,
+    double               E,
+    double               Poisson,
+    Func<TSpace, TSpace> Source
+) where TSpace : IVectorBase<TSpace>;
+
 /// <summary>
 /// Material coefficients for hyperbolic/elliptic problem: χ(∂2u/∂t2) + σ(∂u/∂t) - ∇⋅(λ∇u)=f
 /// </summary>
@@ -68,6 +75,13 @@ public abstract record BoundaryCondition<TSpace>
 public sealed record EllipticProblem<TSpace>
 (
     EllipticMaterial<TSpace>[] Materials,
+    BoundaryCondition<TSpace>[] BoundaryConditions,
+    IMesh<TSpace> Mesh
+) where TSpace : IVectorBase<TSpace>;
+
+public sealed record TensorEllipticProblem<TSpace>
+(
+    TensorEllipticMaterial<TSpace>[] Materials,
     BoundaryCondition<TSpace>[] BoundaryConditions,
     IMesh<TSpace> Mesh
 ) where TSpace : IVectorBase<TSpace>;

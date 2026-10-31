@@ -18,29 +18,83 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
     public static readonly NumericIntegratorTensor<TSpace, TBoundary, TOps> Instance = new();
 
 
-    public void CalculateLocalLoad(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> source, Span<double> outLoad)
-        => throw new NotSupportedException();
+    public void CalculateLocalLoad(
+        IFiniteElementBase<TSpace, TBoundary> element,
+        Func<TSpace, double> source,
+        Span<double> outLoad
+    ) => throw new NotSupportedException();
 
-    public void CalculateLocalLoad(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> source, Span<double> outLoad)
-        => throw new NotSupportedException();
+    public void CalculateLocalLoad(
+        IFiniteElementBase<TSpace, TSpace> element,
+        Func<TSpace, double> source,
+        Span<double> outLoad
+    ) => throw new NotSupportedException();
+
+    private static void CalculateLocalLoad<TB>(
+    IFiniteElementBase<TSpace, TB> element,
+    Func<TSpace, double> source,
+    Span<double> outLoad
+)
+    where TB : IVectorBase<TB>
+    {
+        int n = element.DOF.Count;
+        var masterCs = element.MasterElementCoordinateSystem;
+        var meshCs = element.Mesh.CoordinateSystem;
+
+        for (int j = 0; j < n; j++)
+        {
+            var value = 0.0;
+            foreach (var q in element.Quadratures)
+            {
+                var ep = q.Point; // master element-space point
+                var mp = masterCs.InverseTransform(ep); // mesh-space point
+                var psiJ = element.Basis[j].Value(ep);
+                var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));  // FIXME: may be optimized (by IsConstant)
+                value += source(mp) * psiJ * q.Weight * jacobian;
+            }
+            outLoad[j] = value;
+        }
+    }
+
+    private static void CalculateTensorLocalLoad<TB>(
+        IFiniteElementBase<TSpace, TSpace> element,
+        Func<TSpace, TSpace> source,
+        Span<double> outLoad,
+        Func<TSpace, double> thinkness) where TB : IVectorBase<TB>
+    {
+        int n = element.DOF.Count;
+        var masterCs = element.MasterElementCoordinateSystem;
+        var meshCs = element.Mesh.CoordinateSystem;
+
+    }
 
     public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> gamma)
-        => throw new NotSupportedException();
-
-
+                => throw new NotSupportedException();
     public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> gamma)
-        => throw new NotSupportedException();
-
+                => throw new NotSupportedException();
     public LocalMatrix CalculateLocalStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> lambda)
+                => throw new NotSupportedException();
+
+    public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness)
+        => CalculateTensorLocalLoad<TSpace>(element, source, outLoad, thinkness);
+
+
+    public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness)
+    {
+        throw new NotImplementedException();
+    }
+
+    public LocalMatrix CalculateLocalTensorStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> thinkness, double E, double poisson)
     {
         int n = element.DOF.Count;
 
-        double E = 100;
-        double poisson = 10;
+        //double E = 1e+5;
+        //double poisson = 0.3;
+
         double _E = E / (1 - poisson * poisson);
 
         var matrixD = new TensorMatrix(3, 3);
-        var matrixB = new TensorMatrix(3, 20);
+
 
         var stiffness = new LocalMatrix(n);
 
@@ -60,53 +114,54 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
 
         matrixD[2, 2] = E / (2 * (1 + poisson));
 
-
-        for (int i = 0; i < n/2; ++i)
+        foreach (var q in element.Quadratures)
         {
-            double valX = 0;
-            double valY = 0;
-            foreach (var q in element.Quadratures)
-            {
-                var ep = q.Point;
-                var mp = masterCs.InverseTransform(ep); 
-                var invJ = masterInvJ.MulAt<TSpace, TSpace, TSpace, TOps>(ep, meshInvJ, mp);
-                var shape = element.Basis[i].Derivatives(ep);
+            var ep = q.Point;
+            var mp = masterCs.InverseTransform(ep);
+            var invJ = masterInvJ.MulAt<TSpace, TSpace, TSpace, TOps>(ep, meshInvJ, mp);
+            var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
 
+            var matrixB = new TensorMatrix(3, n);
+
+            for (int i = 0; i < n / 2; ++i)
+            {
+                var shape = element.Basis[i].Derivatives(ep);
                 var shapeNatural = invJ * shape;
 
-                if (shapeNatural is Vector2D deriv) {valX += deriv.X; valY += deriv.Y;}
-
-            }
-            matrixB[0,2 * i] = valX;
-            matrixB[1,2 * i + 1] = valY;
-            matrixB[2,2 * i + 1] = valX;
-            matrixB[2,2 * i] = valY;
-        }
-
-        var matrixBT = matrixB.Tranpose();
-
-        var BTDB = matrixBT * matrixD * matrixB;
-
-        for (int i = 0; i < n; i++)
-        {
-            for (int j = 0; j <= i; j++)
-            {
-                var value = 0.0;
-                foreach (var q in element.Quadratures)
+                if (shapeNatural is Vector2D deriv)
                 {
-                    var ep = q.Point; // master element-space point
-                    var mp = masterCs.InverseTransform(ep); // mesh-space point
-                    var invJ = masterInvJ.MulAt<TSpace, TSpace, TSpace, TOps>(ep, meshInvJ, mp);
-                    var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
-                    value += lambda(mp) * BTDB[i,j] * jacobian * q.Weight;
+
+                    matrixB[0, 2 * i] = deriv.X;
+                    matrixB[1, 2 * i + 1] = deriv.Y;
+                    matrixB[2, 2 * i + 1] = deriv.X;
+                    matrixB[2, 2 * i] = deriv.Y;
+
                 }
-                stiffness[i, j] = value;
-                stiffness[j, i] = value;
+            }
+
+            var matrixBT = matrixB.Tranpose();
+            var BTDB = matrixBT * matrixD * matrixB;
+
+
+            //лямбда выступает в роли толщины, чтобы не переделывать параметры метода
+            double Weight = thinkness(mp) * jacobian * q.Weight;
+
+            for (int i = 0; i < n; ++i)
+            {
+                for (int j = 0; j <= i; ++j)
+                {
+                    var val = BTDB[i, j] * Weight;
+                    stiffness[i, j] += val;
+                    if (i != j)
+                    {
+                        stiffness[j, i] += val;
+                    }
+                }
             }
         }
 
         return stiffness;
-    }   
+    }
 }
 
 
@@ -243,6 +298,13 @@ public class NumericIntegrator<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TB
         }
     }
 
+    public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness) 
+           => throw new NotSupportedException();
 
+    public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness)
+           => throw new NotSupportedException();
+
+    public LocalMatrix CalculateLocalTensorStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> thinkness, double E, double poisson) 
+        => throw new NotSupportedException();
 }
 

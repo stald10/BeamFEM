@@ -37,7 +37,7 @@ namespace BeamFEM.Models.FEM.Problem
         private readonly ISolver _algebraicSolver = algebraicSolver;
 
         public StationarySolution<TSpace, TBoundary> Solve(
-               EllipticProblem<TSpace> problem,
+               TensorEllipticProblem<TSpace> problem,
                ISolver.Params solverParams = new())
         {
             const double time = 0.0;
@@ -55,10 +55,17 @@ namespace BeamFEM.Models.FEM.Problem
                 assembler.AddFixedLoadContribution(local, indices, dofManager.AsFixedSpan(solution), rhsVector);
             }
 
-            assembler.CalculateStiffness(
-                id => problem.Materials[id].Lambda,
+            //Потенциально неправльно переданы аргументы
+            assembler.CalculateTensorStiffnes(
+                id => problem.Materials[id].Thinkness,
+                problem.Materials[1].E,
+                problem.Materials[2].Poisson,
                 AddLocalMatrixWithFixedLoadContribution
-            );
+                );
+            assembler.CalculateTensorLoad(id => problem.Materials[id].Source, rhsVector, problem.Materials[0].Thinkness);
+            //
+
+            assembler.CalculateBoundaryLoadContribution(problem.BoundaryConditions, time, rhsVector);
 
             _algebraicSolver.Matrix = globalMatrix;
             _algebraicSolver.Solve(

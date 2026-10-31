@@ -64,6 +64,7 @@ public interface IIntegrator<TSpace, TBoundary, TOps>
         Span<double> outLoad
     );
 
+
     /// <summary>
     /// Computes local load vector: b_i = ∫_Ω s φ_i dΩ
     /// </summary>
@@ -75,4 +76,44 @@ public interface IIntegrator<TSpace, TBoundary, TOps>
         Func<TSpace, double> source,
         Span<double> outLoad
     );
+
+
+    /// <summary>
+    /// Вычисление локального вектора f_1^e = ∫_Ω^e h*N^T*b dΩ^e
+    /// </summary>
+    /// <param name="element">Элемент</param>
+    /// <param name="source">вектор b</param>
+    /// <param name="outLoad">Результат</param>
+    public void CalculateTensorLocalLoad(
+        IFiniteElementBase<TSpace, TSpace> element,
+        Func<TSpace, TSpace> source,
+        Span<double> outLoad,
+        Func<TSpace, double> thinkness
+    );
+
+    /// <summary>
+    /// Вычисление вкалада краевого: f_2^e = ∫_Г^e h*N^T*t dГ^e
+    /// </summary>
+    /// <param name="element">Граничный элемент</param>
+    /// <param name="source">вектор нагрузок t</param>
+    /// <param name="outLoad">Результат</param>
+    /// <param name="thinkness">Толщина пластины</param>
+    public void CalculateTensorLocalLoad(
+        IFiniteElementBase<TSpace, TBoundary> element,
+        Func<TSpace, TSpace> source,
+        Span<double> outLoad,
+        Func<TSpace, double> thinkness
+    );
+
+
+    LocalMatrix CalculateLocalTensorStiffness(
+    IFiniteElementBase<TSpace, TSpace> element,
+    Func<TSpace, double> thinkness,
+    double E,
+    double poisson
+);
+
+
+
+
 }

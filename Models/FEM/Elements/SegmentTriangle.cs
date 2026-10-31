@@ -37,6 +37,7 @@ public sealed class HierarchicalCubicSegmentTensorFactory : IBoundaryElementFact
         public override int NumberOfDofOnEdge => 4;
         public override int NumberOfDofOnElement => 0;
 
+        //неправильные set dof
         public override void SetVertexDof(int localVertexIndex, int n, int dofIndex)
         {
             AssertIsValidVertexDofNumber(n);

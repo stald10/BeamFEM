@@ -171,6 +171,23 @@ public sealed record Assembler<TSpace, TBoundary, TOps>(
         }
     }
 
+
+    public void CalculateTensorStiffnes(
+        Func<int, Func<TSpace, double>> MaterialIndex,
+        double E,
+        double Poisson,
+        Action<LocalMatrix, ReadOnlySpan<int>> callback
+        )
+    {
+        foreach (var element in Mesh.FiniteElements) 
+        {
+            var material = MaterialIndex(element.MaterialIndex);
+            var local = Integrator.CalculateLocalTensorStiffness(element, material,E,Poisson);
+            var indices = DofManager.CreateFreeLocalToGlobalIndexMapping(element.DOF);
+            callback(local, indices);
+        }
+    }
+
     /// <summary>
     /// Assembles the mass matrix contribution: M_ij = ∫_Ω γ φ_i φ_j dΩ.
     /// </summary>
@@ -219,6 +236,22 @@ public sealed record Assembler<TSpace, TBoundary, TOps>(
             var source = sourceByMaterialIndex(element.MaterialIndex);
             var load = new double[element.DOF.Count];
             Integrator.CalculateLocalLoad(element, source, load);
+            AddLocalLoad(load, element.DOF, outLoad, scale);
+        }
+    }
+
+    public void CalculateTensorLoad(
+        Func<int, Func<TSpace, TSpace>> sourceByMaterialIndex,
+        Span<double> outLoad,
+        Func<TSpace, double> thinkness,
+        double scale = 1.0
+    ) 
+    {
+        foreach (var element in Mesh.FiniteElements)
+        {
+            var source = sourceByMaterialIndex(element.MaterialIndex);
+            var load = new double[element.DOF.Count];
+            Integrator.CalculateTensorLocalLoad(element, source, load, thinkness);
             AddLocalLoad(load, element.DOF, outLoad, scale);
         }
     }
