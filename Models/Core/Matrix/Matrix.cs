@@ -7,6 +7,7 @@ using System.Text;
 using DynamicData;
 using Avalonia.Data;
 using System.Runtime.CompilerServices;
+using Telma;
 
 namespace BeamFEM.Models.Core.Matrix;
 
@@ -60,6 +61,26 @@ public sealed class TensorMatrix(int n1, int n2) : IMatrix
             }
         }
         return Interim;
+    }
+
+    public static Span<double> operator *(TensorMatrix A, Vector2D vec) 
+    {
+        Span<double> res = new double[A.Row];
+
+        double val = 0;
+
+        for (int i = 0; i < A.Row; ++i) 
+        {
+            for (int j = 0; j < A.Column; ++j) 
+            {
+                val += A[i, j] * vec[j];
+            }
+            res[i] = val;
+            val = 0;
+        }
+
+        return res;
+
     }
 
 

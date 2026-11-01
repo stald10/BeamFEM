@@ -58,14 +58,14 @@ namespace BeamFEM.Models.FEM.Problem
             //Потенциально неправльно переданы аргументы
             assembler.CalculateTensorStiffnes(
                 id => problem.Materials[id].Thinkness,
-                problem.Materials[1].E,
-                problem.Materials[2].Poisson,
+                problem.Materials[0].E,
+                problem.Materials[0].Poisson,
                 AddLocalMatrixWithFixedLoadContribution
                 );
             assembler.CalculateTensorLoad(id => problem.Materials[id].Source, rhsVector, problem.Materials[0].Thinkness);
             //
 
-            assembler.CalculateBoundaryLoadContribution(problem.BoundaryConditions, time, rhsVector);
+            //assembler.CalculateBoundaryLoadContribution(problem.BoundaryConditions, time, rhsVector);
 
             _algebraicSolver.Matrix = globalMatrix;
             _algebraicSolver.Solve(

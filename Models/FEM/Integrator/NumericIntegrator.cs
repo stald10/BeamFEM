@@ -30,34 +30,8 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
         Span<double> outLoad
     ) => throw new NotSupportedException();
 
-    private static void CalculateLocalLoad<TB>(
-    IFiniteElementBase<TSpace, TB> element,
-    Func<TSpace, double> source,
-    Span<double> outLoad
-)
-    where TB : IVectorBase<TB>
-    {
-        int n = element.DOF.Count;
-        var masterCs = element.MasterElementCoordinateSystem;
-        var meshCs = element.Mesh.CoordinateSystem;
-
-        for (int j = 0; j < n; j++)
-        {
-            var value = 0.0;
-            foreach (var q in element.Quadratures)
-            {
-                var ep = q.Point; // master element-space point
-                var mp = masterCs.InverseTransform(ep); // mesh-space point
-                var psiJ = element.Basis[j].Value(ep);
-                var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));  // FIXME: may be optimized (by IsConstant)
-                value += source(mp) * psiJ * q.Weight * jacobian;
-            }
-            outLoad[j] = value;
-        }
-    }
-
     private static void CalculateTensorLocalLoad<TB>(
-        IFiniteElementBase<TSpace, TSpace> element,
+        IFiniteElementBase<TSpace, TB> element,
         Func<TSpace, TSpace> source,
         Span<double> outLoad,
         Func<TSpace, double> thinkness) where TB : IVectorBase<TB>
@@ -66,6 +40,27 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
         var masterCs = element.MasterElementCoordinateSystem;
         var meshCs = element.Mesh.CoordinateSystem;
 
+        outLoad.Clear();
+
+        foreach (var q in element.Quadratures)
+        {
+            var ep = q.Point;
+            var mp = masterCs.InverseTransform(ep);
+            var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
+
+
+            double Weight = thinkness(mp) * jacobian * q.Weight;
+
+            if (source(mp) is Vector2D B) 
+            {
+                for (int i = 0; i < n / 2; ++i)
+                {
+                    var shape = element.Basis[i].Value(ep);
+                    outLoad[2 * i] += shape * Weight * B.X;
+                    outLoad[2 * i + 1] += shape * Weight* B.Y;
+                }
+            }
+        }
     }
 
     public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> gamma)
@@ -80,9 +75,7 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
 
 
     public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness)
-    {
-        throw new NotImplementedException();
-    }
+            => CalculateTensorLocalLoad<TBoundary>(element, source, outLoad, thinkness);
 
     public LocalMatrix CalculateLocalTensorStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> thinkness, double E, double poisson)
     {
@@ -298,13 +291,13 @@ public class NumericIntegrator<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TB
         }
     }
 
-    public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness) 
+    public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness)
            => throw new NotSupportedException();
 
     public void CalculateTensorLocalLoad(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, TSpace> source, Span<double> outLoad, Func<TSpace, double> thinkness)
            => throw new NotSupportedException();
 
-    public LocalMatrix CalculateLocalTensorStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> thinkness, double E, double poisson) 
+    public LocalMatrix CalculateLocalTensorStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> thinkness, double E, double poisson)
         => throw new NotSupportedException();
 }
 
