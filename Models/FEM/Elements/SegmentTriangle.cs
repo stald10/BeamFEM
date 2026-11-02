@@ -36,23 +36,27 @@ public sealed class HierarchicalCubicSegmentTensorFactory : IBoundaryElementFact
         public override int NumberOfDofOnVertex => 2;
         public override int NumberOfDofOnEdge => 4;
         public override int NumberOfDofOnElement => 0;
+        private int offset;
+        public override int OffsetIndex { get => offset; set => offset = value; }
 
         //неправильные set dof
         public override void SetVertexDof(int localVertexIndex, int n, int dofIndex)
         {
             AssertIsValidVertexDofNumber(n);
             Debug.Assert(0 <= localVertexIndex && localVertexIndex < 2);
-            _dof[localVertexIndex] = dofIndex;
+            _dof[2*localVertexIndex+n] = dofIndex;
         }
 
         public override void SetEdgeDof(int localEdgeIndex, bool isOrientationFlipped, int n, int dofIndex)
         {
             AssertIsValidEdgeDofNumber(n);
             Debug.Assert(localEdgeIndex == 0);
-            int basisIndex = 2 + n;
-            _dof[basisIndex] = dofIndex;
-            if (n == 1)
-                ((OrientedBasisFunction1D)_basis.Basis[basisIndex]).IsOrientationFlipped = isOrientationFlipped;
+            int StartIndexSegment = 4 + n;
+            _dof[StartIndexSegment] = dofIndex;
+            if (n == 2)
+            {
+                ((OrientedBasisFunction1D)_basis.Basis[3]).IsOrientationFlipped = isOrientationFlipped;
+            }
         }
 
         public override void SetElementDof(int n, int dofIndex)
@@ -87,6 +91,8 @@ public sealed class HierarchicalCubicSegmentFactory : IBoundaryElementFactory2D
         public override int NumberOfDofOnVertex => 1;
         public override int NumberOfDofOnEdge => 2;
         public override int NumberOfDofOnElement => 0;
+        private int offset;
+        public override int OffsetIndex { get => offset; set => offset = value; }
 
         public override void SetVertexDof(int localVertexIndex, int n, int dofIndex)
         {

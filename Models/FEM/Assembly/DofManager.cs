@@ -139,12 +139,17 @@ public static partial class DofNumerator<TSpace, TBoundary>
 
         // 3. Numerate vertex dof
         foreach (var element in mesh.AllElements)
+        {
             for (int i = 0; i < element.Geometry.VertexCount; i++)
             {
                 int globalVertex = element.Geometry.Vertices[i];
                 for (int j = 0; j < element.DOF.NumberOfDofOnVertex; ++j)
+                {
                     element.DOF.SetVertexDof(i, j, dofByVertex[globalVertex] + j);
+                }
             }
+
+        }
     }
 
 
@@ -177,7 +182,10 @@ public static partial class DofNumerator<TSpace, TBoundary>
                     dofCount += dofCountByEdge[sortedEdge];
                 }
                 for (int i = 0; i < element.DOF.NumberOfDofOnEdge; i++)
+                {
                     element.DOF.SetEdgeDof(localEdgeIndex, isOrientationFlipped, i, dofIndex++);
+
+                }
                 localEdgeIndex++;
             }
         }

@@ -1,6 +1,7 @@
 ﻿using BeamFEM.Models.Core.IBasis;
 using BeamFEM.Models.Core.IElement;
 using BeamFEM.Models.FEM.Basis;
+using System;
 using System.Diagnostics;
 using System.Text;
 using Telma;
@@ -42,13 +43,13 @@ namespace BeamFEM.Models.FEM.Elements
             public override int NumberOfDofOnVertex => 2;
             public override int NumberOfDofOnEdge => 4;
             public override int NumberOfDofOnElement => 2;
-
-            //неправильные set dof
+            private int offset;
+            public override int OffsetIndex { get => offset; set => offset = value; }
             public override void SetVertexDof(int localVertexIndex, int n, int dofIndex)
             {
                 AssertIsValidVertexDofNumber(n);
                 Debug.Assert(0 <= localVertexIndex && localVertexIndex < 3);
-                _dof[localVertexIndex] = dofIndex;
+                _dof[2*localVertexIndex + n] = dofIndex;
             }
 
             public override void SetEdgeDof(int localEdgeIndex, bool isOrientationFlipped, int n, int dofIndex)
@@ -56,16 +57,22 @@ namespace BeamFEM.Models.FEM.Elements
                 AssertIsValidEdgeDofNumber(n);
                 Debug.Assert(0 <= localEdgeIndex && localEdgeIndex < 3);
 
-                int basisIndex = 3 + 3 * n + localEdgeIndex;
-                _dof[basisIndex] = dofIndex;
-                if (n == 1)
+                int IndexStart = 6 + 4*localEdgeIndex + n;
+
+                _dof[IndexStart] = dofIndex;
+
+                if (n == 2)
+                {
+                    int basisIndex = 6 + localEdgeIndex;
                     ((OrientedBasisFunction2D)_basis.Basis[basisIndex]).IsOrientationFlipped = isOrientationFlipped;
+                }
+                    
             }
 
             public override void SetElementDof(int n, int dofIndex)
             {
                 AssertIsValidElementDofNumber(n);
-                _dof[9] = dofIndex;
+                _dof[18 + n] = dofIndex;
             }
         }
     }
@@ -106,6 +113,9 @@ namespace BeamFEM.Models.FEM.Elements
             public override int NumberOfDofOnVertex => 1;
             public override int NumberOfDofOnEdge => 2;
             public override int NumberOfDofOnElement => 1;
+
+            private int offset;
+            public override int OffsetIndex { get => offset; set => offset = value; }
 
             public override void SetVertexDof(int localVertexIndex, int n, int dofIndex)
             {

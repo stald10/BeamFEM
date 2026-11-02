@@ -14,6 +14,9 @@ public interface IDofManager
     int NumberOfDofOnVertex { get; }
     int NumberOfDofOnEdge { get; }
     int NumberOfDofOnElement { get; }
+
+    int OffsetIndex { get; set; }
+
     public void Renumber(Func<int, int> renumberFunction);
     public void SetVertexDof(int localVertexIndex, int n, int dofIndex);
     public void SetEdgeDof(int localEdgeIndex, bool isOrientationFlipped, int n, int dofIndex);
@@ -31,6 +34,7 @@ public abstract class DofManager(
     public abstract int NumberOfDofOnVertex { get; }
     public abstract int NumberOfDofOnEdge { get; }
     public abstract int NumberOfDofOnElement { get; }
+    public abstract int OffsetIndex { get; set; }
 
     public void Renumber(Func<int, int> renumberFunction)
     {
