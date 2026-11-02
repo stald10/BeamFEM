@@ -28,6 +28,12 @@ public static class FiniteElementExtensions
             return self.EvaluateAtElementSpace(coefficients, ep);
         }
 
+        public Vector2D TensorEvaluate(ReadOnlySpan<double> coefficients, TSpace point) 
+        {
+            var ep = self.MasterElementCoordinateSystem.Transform(point); // element-space point
+            return self.EvaluateAtElementTensorSpace(coefficients, ep);
+        }
+
         /// <summary>
         /// Evaluates mesh function value at given point inside element
         /// </summary>
@@ -43,6 +49,27 @@ public static class FiniteElementExtensions
             }
 
             return value;
+        }
+
+        public Vector2D EvaluateAtElementTensorSpace(ReadOnlySpan<double> coefficients, TBoundary point) 
+        {
+            double u = 0.0;
+            double v = 0.0;
+            for (int i = 0; i < self.Basis.Length; ++i)
+            {
+                int indexU = self.DOF.Dof[2 * i];
+                int indexV = self.DOF.Dof[2 * i + 1];
+
+                double q1 = coefficients[indexU];
+                double q2 = coefficients[indexV];
+
+                double basis = self.Basis[i].Value(point);
+
+                u += q1 * basis;
+                v += q2 * basis;
+            }
+
+            return new Vector2D(u, v);
         }
     }
 }

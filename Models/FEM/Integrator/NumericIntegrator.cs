@@ -112,31 +112,72 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
             var ep = q.Point;
             var mp = masterCs.InverseTransform(ep);
             var invJ = masterInvJ.MulAt<TSpace, TSpace, TSpace, TOps>(ep, meshInvJ, mp);
-            var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
+
+            var jac1 = masterCs.Jacobian(ep);
+            var jac2 = meshCs.Jacobian(mp);
+
+            //var jacobian = jac1 * jac2;
+            var jacobian = Math.Abs(masterCs.Jacobian(ep));
 
             var matrixB = new TensorMatrix(3, n);
 
-            for (int i = 0; i < n / 2; ++i)
+
+            for (int i = 0; i < 3; ++i)
             {
-                var shape = element.Basis[i].Derivatives(ep);
-                var shapeNatural = invJ * shape;
 
-                if (shapeNatural is Vector2D deriv)
+                if (element.Basis[i].Derivatives(ep) * invJ is Vector2D deriv) 
                 {
+                    int dofU = 2 * i;
+                    int dofV = 2 * i + 1;
 
-                    matrixB[0, 2 * i] = deriv.X;
-                    matrixB[1, 2 * i + 1] = deriv.Y;
-                    matrixB[2, 2 * i + 1] = deriv.X;
-                    matrixB[2, 2 * i] = deriv.Y;
+                    matrixB[0, dofU] = deriv.X;
+                    matrixB[1, dofV] = deriv.Y;
+                    matrixB[2, dofU] = deriv.Y;
+                    matrixB[2, dofV] = deriv.X;
+                }
 
+
+            }
+            for (int e = 0; e < 3; ++e)
+            {
+                int quadBasisIdx = 3 + e;
+                int cubicBasisIdx = 6 + e;
+                int edgeStartPos = 6 + 4 * e;
+
+
+                if (element.Basis[quadBasisIdx].Derivatives(ep) * invJ is Vector2D derivQuad) 
+                {
+                    matrixB[0, edgeStartPos + 0] = derivQuad.X;
+                    matrixB[1, edgeStartPos + 1] = derivQuad.Y;
+                    matrixB[2, edgeStartPos + 0] = derivQuad.Y;
+                    matrixB[2, edgeStartPos + 1] = derivQuad.X;
+                }
+                if ( element.Basis[cubicBasisIdx].Derivatives(ep) * invJ is Vector2D derivCubic) 
+                {
+                    matrixB[0, edgeStartPos + 2] = derivCubic.X;
+                    matrixB[1, edgeStartPos + 3] = derivCubic.Y;
+                    matrixB[2, edgeStartPos + 2] = derivCubic.Y;
+                    matrixB[2, edgeStartPos + 3] = derivCubic.X;
+                }
+
+            }
+
+            {
+
+                int centerStartPos = 18;
+
+                if (element.Basis[9].Derivatives(ep)*invJ is Vector2D derivCenter)
+                {
+                    matrixB[0, centerStartPos + 0] = derivCenter.X;
+                    matrixB[1, centerStartPos + 1] = derivCenter.Y;
+                    matrixB[2, centerStartPos + 0] = derivCenter.Y;
+                    matrixB[2, centerStartPos + 1] = derivCenter.X;
                 }
             }
 
             var matrixBT = matrixB.Tranpose();
             var BTDB = matrixBT * matrixD * matrixB;
 
-
-            //лямбда выступает в роли толщины, чтобы не переделывать параметры метода
             double Weight = thinkness(mp) * jacobian * q.Weight;
 
             for (int i = 0; i < n; ++i)
@@ -194,7 +235,7 @@ public class NumericIntegrator<TSpace, TBoundary, TOps> : IIntegrator<TSpace, TB
                     var gradPhiI = element.Basis[i].Derivatives(ep);
                     var gradPhiJ = element.Basis[j].Derivatives(ep);
 
-                    var str = gradPhiI.GetType();
+    
 
                     // product = grad(phi_i)^T * J^(-T) * J(-1) * grad(phi_j)
                     var product = (gradPhiI * invJ) * (gradPhiJ * invJ);

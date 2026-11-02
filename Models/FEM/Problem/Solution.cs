@@ -5,6 +5,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using Telma.Extensions;
+using Telma;
 
 namespace BeamFEM.Models.FEM.Problem;
 
@@ -21,6 +22,19 @@ public sealed class StationarySolution<TSpace, TBoundary>(
 
     private SearchTree<TSpace>? _searchTree = null;
 
+    public Vector2D TensorEvalute(TSpace point, CoordinateSpace coordSpace = CoordinateSpace.Mesh) 
+    {
+        point = coordSpace switch
+        {
+            CoordinateSpace.Physical => Mesh.CoordinateSystem.Transform(point),
+            CoordinateSpace.Mesh => point,
+            _ => throw new NotSupportedException()
+        };
+        _searchTree ??= SearchTree<TSpace>.BuildFor(Mesh);
+        var element = _searchTree.FindElementAt(point) ??
+            throw new ArgumentException("Failed to find element at the point", nameof(point));
+        return element.TensorEvaluate(_coefficients,point);
+    }
 
     public double Evaluate(TSpace point, CoordinateSpace coordSpace = CoordinateSpace.Mesh)
     {

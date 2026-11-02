@@ -389,4 +389,19 @@ public sealed record Assembler<TSpace, TBoundary, TOps>(
                 outLoad[dof] += scale * local[i];
         }
     }
+
+    private void AddTensorLocalLoad(
+        ReadOnlySpan<double> local,
+        IDofManager elementDof,
+        Span<double> outLoad,
+        double scale = 1.0
+    ) 
+    {
+
+        for (int i = 0; i < elementDof.Count; ++i)
+        {
+            int dof = elementDof.Dof[i];
+            outLoad[dof] += scale * local[i];
+        }
+    }
 }
