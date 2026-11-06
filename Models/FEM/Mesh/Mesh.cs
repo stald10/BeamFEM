@@ -72,7 +72,7 @@ public sealed class Mesh<TSpace, TBoundary>(ICoordinateTransform<TSpace, TSpace>
 
 public sealed class Grid()
 {
-    public static (Vector2D[] _p, Vector3D[] _cl, Vector3D[] _bound) GridGenerator(TopologyStructer topologyParametr) 
+    public static (Vector2D[] _p, Vector3D[] _cl, List<Vector3D> _bound) GridGenerator(TopologyStructer topologyParametr) 
     {
         //var topologyParametr = TopologyReader.ReadJSON(path);
 
@@ -82,12 +82,12 @@ public sealed class Grid()
         int Lx = topologyParametr.Lx;
         int Ly = topologyParametr.Ly;
 
-        var dx = Lx / (Nx - 1);
-        var dy = Ly / (Ny - 1);
+        double dx = Lx / (double)(Nx - 1);
+        double dy = Ly / (double)(Ny - 1);
 
         Vector2D[] p = new Vector2D[Nx*Ny];
         Vector3D[] cl = new Vector3D[2 * (Nx - 1) * (Ny - 1)];
-        Vector3D[] Bound = new Vector3D[Nx * Ny];
+        List<Vector3D> Bound = new();
 
         int index = 0;
         for (int i = 0; i < Ny; ++i) 
@@ -117,27 +117,26 @@ public sealed class Grid()
             }
         }
 
-        int boundS = Nx * Ny - (Ny - 1);
         int count = 0;
-        for (int i = 1; i <= boundS/2; ++i) 
+        for (int i = 1; i < Nx; ++i) 
         {
-            Bound[i - 1] = new Vector3D(i - 1, i, 1);
+            Bound.Add(new Vector3D(i - 1, i, 1));
             count++;
         }
-        for (int i = boundS / 2 + 1; i < boundS; ++i) 
+        for (int i = Nx*Ny - Nx; i < Nx*Ny - 1; ++i) 
         {
-            Bound[i - 1] = new Vector3D(i, i + 1, 1);
+            Bound.Add(new Vector3D(i, i + 1, 1));
             count++;
         }
         for (int i = 0; i < Ny-1; ++i) 
         {
-            Bound[count] = new Vector3D(i * Nx, (i + 1) * Nx, 0);
+            Bound.Add(new Vector3D(i * Nx, (i + 1) * Nx, 0));
             count++;
             
         }
         for (int i = 0; i < Ny-1; ++i) 
         {
-            Bound[count] = new Vector3D((i+1) * Nx - 1, (i + 2) * Nx - 1, 1);
+            Bound.Add(new Vector3D((i+1) * Nx - 1, (i + 2) * Nx - 1, 1));
             count++;
         }
 
