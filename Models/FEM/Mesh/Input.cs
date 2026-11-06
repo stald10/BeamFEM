@@ -1,13 +1,60 @@
 ﻿using BeamFEM.Models.Core.CoordinateSystem;
 using BeamFEM.Models.FEM.Elements;
+using BeamFEM.Topology;
 using System;
+using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Globalization;
+using System.Text;
 using Telma;
 using Telma.Extensions;
 
 namespace BeamFEM.Models.FEM.Mesh;
+
+public static class SystemInput 
+{
+    public static (StringBuilder grid, double E, double Poisson) GeneralParametr(string path) 
+    {
+        StringBuilder gridStr = new();
+
+        var topologyParametr = TopologyReader.ReadJSON(path);
+        var grid = Grid.GridGenerator(topologyParametr);
+
+        Vector2D[] points = grid._p;
+
+        int countP = points.Length;
+
+        Vector3D[] index = grid._cl;
+
+        int countI = index.Length;
+
+        Vector3D[] boundary = grid._bound;
+
+        int countB = boundary.Length;
+
+        gridStr.Append($"{countP}\n");
+        for (int i = 0; i < countP; ++i) 
+        {
+            var point = points[i];
+            gridStr.Append($"{point.X} {point.Y}" + "\n");
+        }
+        gridStr.Append($"{countI}\n");
+        for (int i = 0; i < countI; ++i)
+        {
+            var point = index[i];
+            gridStr.Append($"{point.X} {point.Y} {point.Z}" + " 0" +"\n");
+        }
+        gridStr.Append($"{countB}\n");
+        for (int i = 0; i < countB; ++i)
+        {
+            var point = boundary[i];
+            gridStr.Append($"{point.X} {point.Y} {point.Z}" + "\n");
+        }
+        gridStr.Length--;
+
+        return (gridStr, topologyParametr.E, topologyParametr.poisson);
+    }
+}
 
 public static class MeshInput
 {

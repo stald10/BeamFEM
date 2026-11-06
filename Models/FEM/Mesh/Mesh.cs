@@ -3,6 +3,7 @@ using BeamFEM.Models.FEM.Elements;
 using BeamFEM.Topology;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection.Metadata;
 using Telma;
 using Telma.Extensions;
 
@@ -71,9 +72,9 @@ public sealed class Mesh<TSpace, TBoundary>(ICoordinateTransform<TSpace, TSpace>
 
 public sealed class Grid()
 {
-    public static (Vector2D[] _p, Vector3D[] _cl) GridGenerator(string path) 
+    public static (Vector2D[] _p, Vector3D[] _cl, Vector3D[] _bound) GridGenerator(TopologyStructer topologyParametr) 
     {
-        var topologyParametr = TopologyReader.ReadJSON(path);
+        //var topologyParametr = TopologyReader.ReadJSON(path);
 
         int Nx = topologyParametr.Nx;
         int Ny = topologyParametr.Ny;
@@ -86,6 +87,7 @@ public sealed class Grid()
 
         Vector2D[] p = new Vector2D[Nx*Ny];
         Vector3D[] cl = new Vector3D[2 * (Nx - 1) * (Ny - 1)];
+        Vector3D[] Bound = new Vector3D[Nx * Ny];
 
         int index = 0;
         for (int i = 0; i < Ny; ++i) 
@@ -108,12 +110,38 @@ public sealed class Grid()
                 double index3 = index2 + Nx;
                 double index4 = index1 + Nx;
 
-                cl[index] = new Vector3D(index1, index3, index4);
-                index++;
                 cl[index] = new Vector3D(index1, index2, index3);
+                index++;
+                cl[index] = new Vector3D(index1, index3, index4);
                 index++;
             }
         }
-        return (p,cl);
+
+        int boundS = Nx * Ny - (Ny - 1);
+        int count = 0;
+        for (int i = 1; i <= boundS/2; ++i) 
+        {
+            Bound[i - 1] = new Vector3D(i - 1, i, 1);
+            count++;
+        }
+        for (int i = boundS / 2 + 1; i < boundS; ++i) 
+        {
+            Bound[i - 1] = new Vector3D(i, i + 1, 1);
+            count++;
+        }
+        for (int i = 0; i < Ny-1; ++i) 
+        {
+            Bound[count] = new Vector3D(i * Nx, (i + 1) * Nx, 0);
+            count++;
+            
+        }
+        for (int i = 0; i < Ny-1; ++i) 
+        {
+            Bound[count] = new Vector3D((i+1) * Nx - 1, (i + 2) * Nx - 1, 1);
+            count++;
+        }
+
+
+        return (p,cl, Bound);
     }
 }
