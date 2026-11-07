@@ -245,7 +245,7 @@ public static partial class DofNumerator<TSpace, TBoundary>
             else
                 numberMapping[i] = start++;
 
-        foreach (var elementDof in elementsDof)
+        foreach (var elementDof in elementsDof.Distinct())
             elementDof.Renumber(i => numberMapping[i]);
 
         return start;
