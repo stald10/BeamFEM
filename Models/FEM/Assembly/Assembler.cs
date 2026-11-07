@@ -146,7 +146,7 @@ public sealed record Assembler<TSpace, TBoundary, TOps>(
         solver.Solve(rhsVector, outFixedSolution, solverParams);
     }
 
-    public void CalculateTensorFixedElmens(
+    public void CalculateTensorFixedElements(
         BoundaryCondition<TSpace>[] boundaryConditions,
         double time, ISolver solver,
         Span<double> outFixedSolution,

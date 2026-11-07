@@ -120,12 +120,12 @@ public sealed class Grid()
         int count = 0;
         for (int i = 1; i < Nx; ++i) 
         {
-            Bound.Add(new Vector3D(i - 1, i, 1));
+            Bound.Add(new Vector3D(i - 1, i, 0));
             count++;
         }
         for (int i = Nx*Ny - Nx; i < Nx*Ny - 1; ++i) 
         {
-            Bound.Add(new Vector3D(i, i + 1, 1));
+            Bound.Add(new Vector3D(i, i + 1, 0));
             count++;
         }
         for (int i = 0; i < Ny-1; ++i) 
@@ -136,7 +136,7 @@ public sealed class Grid()
         }
         for (int i = 0; i < Ny-1; ++i) 
         {
-            Bound.Add(new Vector3D((i+1) * Nx - 1, (i + 2) * Nx - 1, 1));
+            Bound.Add(new Vector3D((i+1) * Nx - 1, (i + 2) * Nx - 1, 0));
             count++;
         }
 

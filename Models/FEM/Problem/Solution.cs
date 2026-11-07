@@ -89,7 +89,8 @@ public sealed class StationarySolution<TSpace, TBoundary>(
                 var analyticalValue = analyticSolution(mp);
                 var femValue = element.EvaluateAtElementTensorSpace(_coefficients, q.Point);
                 var difference = analyticalValue - femValue;
-                elementDifference += q.Weight * difference * difference * Math.Abs(masterCs.Jacobian(q.Point));
+                double squareError = difference*difference;
+                elementDifference += q.Weight * squareError * Math.Abs(masterCs.Jacobian(q.Point));
             }
             totalDifference += elementDifference;
         }

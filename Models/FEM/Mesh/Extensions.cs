@@ -24,7 +24,11 @@ public static class MeshExtensions
 
         public IEnumerable<IBoundaryElement<TSpace, TBoundary>> FixedElementsBy(BoundaryCondition<TSpace>[] boundaryConditions)
             => self.BoundaryElements
-                .Where(e => boundaryConditions[e.BoundaryIndex] is BoundaryCondition<TSpace>.Dirichlet);
+                .Where(e => boundaryConditions[e.BoundaryIndex] is BoundaryCondition<TSpace>.Dirichlet or BoundaryCondition<TSpace>.TensorDirichlet);
+        
+
+
+
     }
 
     extension<TSpace, TBoundary>(Mesh<TSpace, TBoundary> self)

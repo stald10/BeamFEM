@@ -44,7 +44,7 @@ public sealed class HierarchicalCubicSegmentTensorFactory : IBoundaryElementFact
         {
             AssertIsValidVertexDofNumber(n);
             Debug.Assert(0 <= localVertexIndex && localVertexIndex < 2);
-            _dof[2*localVertexIndex+n] = dofIndex;
+            _dof[2 * localVertexIndex + n] = dofIndex;
         }
 
         public override void SetEdgeDof(int localEdgeIndex, bool isOrientationFlipped, int n, int dofIndex)
@@ -53,7 +53,7 @@ public sealed class HierarchicalCubicSegmentTensorFactory : IBoundaryElementFact
             Debug.Assert(localEdgeIndex == 0);
             int StartIndexSegment = 4 + n;
             _dof[StartIndexSegment] = dofIndex;
-            if (n == 2)
+            if (n == 2 || n == 3)
             {
                 ((OrientedBasisFunction1D)_basis.Basis[3]).IsOrientationFlipped = isOrientationFlipped;
             }

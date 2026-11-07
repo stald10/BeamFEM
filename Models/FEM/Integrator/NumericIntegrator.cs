@@ -42,25 +42,89 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
 
         outLoad.Clear();
 
-        foreach (var q in element.Quadratures)
+        if (typeof(TB) == typeof(TBoundary))
         {
-            var ep = q.Point;
-            var mp = masterCs.InverseTransform(ep);
-            var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
-
-
-            double Weight = thinkness(mp) * jacobian * q.Weight;
-
-            if (source(mp) is Vector2D B) 
+            foreach (var q in element.Quadratures)
             {
-                for (int i = 0; i < n / 2; ++i)
+                var ep = q.Point;
+                var mp = masterCs.InverseTransform(ep);
+                var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
+
+
+                double Weight = thinkness(mp) * jacobian * q.Weight;
+
+                if (source(mp) is Vector2D B)
                 {
-                    var shape = element.Basis[i].Value(ep);
-                    outLoad[2 * i] += shape * Weight * B.X;
-                    outLoad[2 * i + 1] += shape * Weight* B.Y;
+                    for (int i = 0; i < n / 2; ++i)
+                    {
+                        var shape = element.Basis[i].Value(ep);
+                        outLoad[2 * i] += shape * Weight * B.X;
+                        outLoad[2 * i + 1] += shape * Weight * B.Y;
+                    }
                 }
             }
         }
+        else if (typeof(TB) == typeof(TSpace))
+        {
+            foreach (var q in element.Quadratures)
+            {
+                var ep = q.Point;
+                var mp = masterCs.InverseTransform(ep);
+                var jacobian = Math.Abs(masterCs.Jacobian(ep) * meshCs.Jacobian(mp));
+
+                var matrixN = new TensorMatrix(2, n);
+
+                double Weight = thinkness(mp) * jacobian * q.Weight;
+
+
+                for (int i = 0; i < 3; ++i)
+                {
+                    int dofU = 2 * i;
+                    int dofV = 2 * i + 1;
+
+                    var N = element.Basis[i].Value(ep);
+
+                    matrixN[0, dofU] = N;
+                    matrixN[1, dofV] = N;
+
+                }
+
+                for (int e = 0; e < 3; ++e)
+                {
+                    int quadB = 3 + e;
+                    int cubicB = 6 + e;
+                    int dofIndex = 6 + 4 * e;
+
+                    var quadN = element.Basis[quadB].Value(ep);
+                    var cubicN = element.Basis[cubicB].Value(ep);
+
+                    matrixN[0, dofIndex] = quadN;
+                    matrixN[1, dofIndex + 1] = quadN;
+
+                    matrixN[0, dofIndex + 2] = cubicN;
+                    matrixN[1, dofIndex + 3] = cubicN;
+                }
+
+                var centerN = element.Basis[9].Value(ep);
+
+                matrixN[0, 18] = centerN;
+                matrixN[1, 19] = centerN;
+
+
+                var matrixNTran = matrixN.Tranpose();
+
+                if (source(mp) is Vector2D B) 
+                {
+                    var f = matrixNTran * B;
+                    for (int i = 0; i < f.Length; ++i) 
+                    {
+                        outLoad[i] += f[i] * Weight;
+                    }
+                }
+            }
+        }
+
+
     }
 
     private static LocalMatrix CalculateLocalMass<TB>(
@@ -71,49 +135,121 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
     {
         int n = element.DOF.Count;
 
-        
-
         var mass = new LocalMatrix(n);
 
         var masterCs = element.MasterElementCoordinateSystem;
         var meshCs = element.Mesh.CoordinateSystem;
-        foreach (var q in element.Quadratures)
+
+        if (typeof(TB) == typeof(TBoundary)) 
         {
-            var ep = q.Point;
-            var mp = masterCs.InverseTransform(ep);
-
-            var jac1 = masterCs.Jacobian(ep);
-            var jac2 = meshCs.Jacobian(mp);
-
-            var jacobian = jac1 * jac2;
-            //var jacobian = Math.Abs(masterCs.Jacobian(ep));
-
-            var matrixN = new TensorMatrix(2, n);
-
-            for (int i = 0; i < element.Basis.Length; ++i) 
+            foreach (var q in element.Quadratures)
             {
-                int dofU = 2 * i;
-                int dofV = 2 * i + 1;
+                var ep = q.Point;
+                var mp = masterCs.InverseTransform(ep);
 
-                matrixN[0, dofU] = element.Basis[i].Value(ep);
-                matrixN[1, dofV] = element.Basis[i].Value(ep);
+                var jac1 = masterCs.Jacobian(ep);
+                var jac2 = meshCs.Jacobian(mp);
 
-            }
+                var jacobian = Math.Abs(jac1 * jac2);
+                //var jacobian = Math.Abs(masterCs.Jacobian(ep));
 
-            var matrixNTran = matrixN.Tranpose();
+                var matrixN = new TensorMatrix(2, n);
 
-            var NTN = matrixNTran * matrixN;
-
-            var Weight = jacobian * q.Weight;
-            for (int i = 0; i < n; ++i)
-            {
-                for (int j = 0; j <= i; ++j)
+                for (int i = 0; i < element.Basis.Length; ++i)
                 {
-                    var val = NTN[i, j] * Weight;
-                    mass[i, j] += val;
-                    if (i != j)
+                    int dofU = 2 * i;
+                    int dofV = 2 * i + 1;
+
+                    var N = element.Basis[i].Value(ep);
+
+                    matrixN[0, dofU] = N;
+                    matrixN[1, dofV] = N;
+
+                }
+
+                var matrixNTran = matrixN.Tranpose();
+
+                var NTN = matrixNTran * matrixN;
+
+                var Weight = jacobian * q.Weight;
+                for (int i = 0; i < n; ++i)
+                {
+                    for (int j = 0; j <= i; ++j)
                     {
-                        mass[j, i] += val;
+                        var val = NTN[i, j] * Weight;
+                        mass[i, j] += val;
+                        if (i != j)
+                        {
+                            mass[j, i] += val;
+                        }
+                    }
+                }
+            }
+        }
+        else if (typeof(TB) == typeof(TSpace)) 
+        {
+            foreach (var q in element.Quadratures)
+            {
+                var ep = q.Point;
+                var mp = masterCs.InverseTransform(ep);
+
+                var jac1 = masterCs.Jacobian(ep);
+                var jac2 = meshCs.Jacobian(mp);
+
+                var jacobian = Math.Abs(jac1 * jac2);
+                //var jacobian = Math.Abs(masterCs.Jacobian(ep));
+
+                var matrixN = new TensorMatrix(2, n);
+
+                for (int i = 0; i < 3; ++i)
+                {
+                    int dofU = 2 * i;
+                    int dofV = 2 * i + 1;
+
+                    var N = element.Basis[i].Value(ep);
+
+                    matrixN[0, dofU] = N;
+                    matrixN[1, dofV] = N;
+
+                }
+
+                for (int e = 0; e < 3; ++e) 
+                {
+                    int quadB = 3 + e;
+                    int cubicB = 6 + e;
+                    int dofIndex = 6 + 4*e;
+
+                    var quadN = element.Basis[quadB].Value(ep);
+                    var cubicN = element.Basis[cubicB].Value(ep);
+
+                    matrixN[0, dofIndex] = quadN;
+                    matrixN[1, dofIndex + 1] = quadN;
+
+                    matrixN[0, dofIndex + 2] = cubicN;
+                    matrixN[1, dofIndex + 3] = cubicN;
+                }
+
+                var centerN = element.Basis[9].Value(ep);
+
+                matrixN[0, 18] = centerN;
+                matrixN[1, 19] = centerN;
+
+
+                var matrixNTran = matrixN.Tranpose();
+
+                var NTN = matrixNTran * matrixN;
+
+                var Weight = jacobian * q.Weight;
+                for (int i = 0; i < n; ++i)
+                {
+                    for (int j = 0; j <= i; ++j)
+                    {
+                        var val = NTN[i, j] * Weight;
+                        mass[i, j] += val;
+                        if (i != j)
+                        {
+                            mass[j, i] += val;
+                        }
                     }
                 }
             }
@@ -175,7 +311,7 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
             var jac1 = masterCs.Jacobian(ep);
             var jac2 = meshCs.Jacobian(mp);
 
-            var jacobian = jac1 * jac2;
+            var jacobian = Math.Abs(jac1 * jac2);
             //var jacobian = Math.Abs(masterCs.Jacobian(ep));
 
             var matrixB = new TensorMatrix(3, n);

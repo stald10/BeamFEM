@@ -55,19 +55,40 @@ public static class FiniteElementExtensions
         {
             double u = 0.0;
             double v = 0.0;
-            for (int i = 0; i < self.Basis.Length; ++i)
+            for (int i = 0; i < 3; ++i)
             {
-                int indexU = self.DOF.Dof[2 * i];
-                int indexV = self.DOF.Dof[2 * i + 1];
-
-                double q1 = coefficients[indexU];
-                double q2 = coefficients[indexV];
-
+                int dofU = self.DOF.Dof[2 * i];
+                int dofV = self.DOF.Dof[2 * i + 1];
                 double basis = self.Basis[i].Value(point);
 
-                u += q1 * basis;
-                v += q2 * basis;
+                u += coefficients[dofU] * basis;
+                v += coefficients[dofV] * basis;
             }
+            for (int e = 0; e < 3; ++e)
+            {
+                int quadBasisIdx = 3 + e;
+                int cubicBasisIdx = 6 + e;
+                int edgeStartPos = 6 + 4 * e;
+
+                double basisQuad = self.Basis[quadBasisIdx].Value(point);
+                double basisCubic = self.Basis[cubicBasisIdx].Value(point);
+
+                
+                u += coefficients[self.DOF.Dof[edgeStartPos + 0]] * basisQuad;
+                v += coefficients[self.DOF.Dof[edgeStartPos + 1]] * basisQuad;
+
+                
+                u += coefficients[self.DOF.Dof[edgeStartPos + 2]] * basisCubic;
+                v += coefficients[self.DOF.Dof[edgeStartPos + 3]] * basisCubic;
+            }
+            {
+                int centerStartPos = 18;
+                double basisCenter = self.Basis[9].Value(point);
+
+                u += coefficients[self.DOF.Dof[centerStartPos + 0]] * basisCenter;
+                v += coefficients[self.DOF.Dof[centerStartPos + 1]] * basisCenter;
+            }
+
 
             return new Vector2D(u, v);
         }

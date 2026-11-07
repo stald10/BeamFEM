@@ -49,7 +49,7 @@ namespace BeamFEM.Models.FEM.Elements
             {
                 AssertIsValidVertexDofNumber(n);
                 Debug.Assert(0 <= localVertexIndex && localVertexIndex < 3);
-                _dof[2*localVertexIndex + n] = dofIndex;
+                _dof[2 * localVertexIndex + n] = dofIndex;
             }
 
             public override void SetEdgeDof(int localEdgeIndex, bool isOrientationFlipped, int n, int dofIndex)
@@ -57,16 +57,16 @@ namespace BeamFEM.Models.FEM.Elements
                 AssertIsValidEdgeDofNumber(n);
                 Debug.Assert(0 <= localEdgeIndex && localEdgeIndex < 3);
 
-                int IndexStart = 6 + 4*localEdgeIndex + n;
+                int IndexStart = 6 + 4 * localEdgeIndex + n;
 
                 _dof[IndexStart] = dofIndex;
 
-                if (n == 2)
+                if (n == 2 || n == 3)
                 {
                     int basisIndex = 6 + localEdgeIndex;
                     ((OrientedBasisFunction2D)_basis.Basis[basisIndex]).IsOrientationFlipped = isOrientationFlipped;
                 }
-                    
+
             }
 
             public override void SetElementDof(int n, int dofIndex)
