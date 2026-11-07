@@ -74,4 +74,26 @@ public sealed class StationarySolution<TSpace, TBoundary>(
         }
         return totalDifference;
     }
+
+    public double DifferenceTensor(Func<TSpace, Vector2D> analyticSolution) 
+    {
+        double totalDifference = 0;
+        foreach (var element in Mesh.FiniteElements)
+        {
+            var masterCs = element.MasterElementCoordinateSystem;
+
+            double elementDifference = 0;
+            foreach (var q in element.Quadratures)
+            {
+                var mp = masterCs.InverseTransform(q.Point); // mesh-space point
+                var analyticalValue = analyticSolution(mp);
+                var femValue = element.EvaluateAtElementTensorSpace(_coefficients, q.Point);
+                var difference = analyticalValue - femValue;
+                elementDifference += q.Weight * difference * difference * Math.Abs(masterCs.Jacobian(q.Point));
+            }
+            totalDifference += elementDifference;
+        }
+        return totalDifference;
+    } 
 }
+
