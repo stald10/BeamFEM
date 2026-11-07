@@ -55,7 +55,11 @@ namespace BeamFEM.Models.FEM.Problem
                 assembler.AddFixedLoadContribution(local, indices, dofManager.AsFixedSpan(solution), rhsVector);
             }
 
-            //Потенциально неправльно переданы аргументы
+            assembler.CalculateTensorFixedElements(
+                problem.BoundaryConditions, time, _algebraicSolver,
+                dofManager.AsFixedSpan(solution),
+                solverParams);
+
             assembler.CalculateTensorStiffnes(
                 id => problem.Materials[id].Thinkness,
                 problem.Materials[0].E,

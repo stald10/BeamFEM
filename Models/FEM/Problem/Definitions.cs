@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using Telma;
 using Telma.Extensions;
 
 namespace BeamFEM.Models.FEM.Problem;
@@ -45,6 +46,14 @@ public abstract record BoundaryCondition<TSpace>
     /// <param name="Value">Функция g</param>
     public sealed record Dirichlet(
         Func<TSpace, double, double> Value
+    ) : BoundaryCondition<TSpace>();
+
+    /// <summary>
+    /// Первые краевые в векторной форме
+    /// </summary>
+    /// <param name="Value"></param>
+    public sealed record TensorDirichlet(
+        Func<TSpace, TSpace, TSpace> Value
     ) : BoundaryCondition<TSpace>();
 
     /// <summary>

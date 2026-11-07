@@ -63,8 +63,67 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
         }
     }
 
+    private static LocalMatrix CalculateLocalMass<TB>(
+     IFiniteElementBase<TSpace, TB> element,
+     Func<TSpace, double> gamma
+)
+    where TB : IVectorBase<TB>
+    {
+        int n = element.DOF.Count;
+
+        
+
+        var mass = new LocalMatrix(n);
+
+        var masterCs = element.MasterElementCoordinateSystem;
+        var meshCs = element.Mesh.CoordinateSystem;
+        foreach (var q in element.Quadratures)
+        {
+            var ep = q.Point;
+            var mp = masterCs.InverseTransform(ep);
+
+            var jac1 = masterCs.Jacobian(ep);
+            var jac2 = meshCs.Jacobian(mp);
+
+            var jacobian = jac1 * jac2;
+            //var jacobian = Math.Abs(masterCs.Jacobian(ep));
+
+            var matrixN = new TensorMatrix(2, n);
+
+            for (int i = 0; i < element.Basis.Length; ++i) 
+            {
+                int dofU = 2 * i;
+                int dofV = 2 * i + 1;
+
+                matrixN[0, dofU] = element.Basis[i].Value(ep);
+                matrixN[1, dofV] = element.Basis[i].Value(ep);
+
+            }
+
+            var matrixNTran = matrixN.Tranpose();
+
+            var NTN = matrixNTran * matrixN;
+
+            var Weight = jacobian * q.Weight;
+            for (int i = 0; i < n; ++i)
+            {
+                for (int j = 0; j <= i; ++j)
+                {
+                    var val = NTN[i, j] * Weight;
+                    mass[i, j] += val;
+                    if (i != j)
+                    {
+                        mass[j, i] += val;
+                    }
+                }
+            }
+        }
+        return mass;
+    }
+
+
     public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TBoundary> element, Func<TSpace, double> gamma)
-                => throw new NotSupportedException();
+                => CalculateLocalMass<TBoundary>(element, gamma);
     public LocalMatrix CalculateLocalMass(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> gamma)
                 => throw new NotSupportedException();
     public LocalMatrix CalculateLocalStiffness(IFiniteElementBase<TSpace, TSpace> element, Func<TSpace, double> lambda)
@@ -116,8 +175,8 @@ public class NumericIntegratorTensor<TSpace, TBoundary, TOps> : IIntegrator<TSpa
             var jac1 = masterCs.Jacobian(ep);
             var jac2 = meshCs.Jacobian(mp);
 
-            //var jacobian = jac1 * jac2;
-            var jacobian = Math.Abs(masterCs.Jacobian(ep));
+            var jacobian = jac1 * jac2;
+            //var jacobian = Math.Abs(masterCs.Jacobian(ep));
 
             var matrixB = new TensorMatrix(3, n);
 

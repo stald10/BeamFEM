@@ -1,14 +1,17 @@
-﻿using BeamFEM.Models.Core.CoordinateSystem;
+﻿using Avalonia;
+using BeamFEM.Models.Core.CoordinateSystem;
 using BeamFEM.Models.Core.Matrix;
 using BeamFEM.Models.Core.Solver;
-using BeamFEM.Models.FEM.Integrator;
 using BeamFEM.Models.FEM.Elements;
-using BeamFEM.Models.FEM.Problem;
+using BeamFEM.Models.FEM.Integrator;
 using BeamFEM.Models.FEM.Mesh;
+using BeamFEM.Models.FEM.Problem;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
+using System.Xml.Linq;
+using Telma;
 using Telma.Extensions;
 
 namespace BeamFEM.Models.FEM.Assembly;
@@ -142,6 +145,36 @@ public sealed record Assembler<TSpace, TBoundary, TOps>(
         solver.Matrix = matrix;
         solver.Solve(rhsVector, outFixedSolution, solverParams);
     }
+
+    public void CalculateTensorFixedElmens(
+        BoundaryCondition<TSpace>[] boundaryConditions,
+        double time, ISolver solver,
+        Span<double> outFixedSolution,
+        ISolver.Params solverParams = new()
+    ) 
+    {
+        Debug.Assert(outFixedSolution.Length == DofManager.FixedDofCount);
+        outFixedSolution.Clear();
+
+        if (_fixedMatrix.IsValueCreated)
+            _fixedMatrix.Value.Fill(0);
+        var matrix = _fixedMatrix.Value;
+
+        var rhsVector = new double[DofManager.FixedDofCount];
+
+        foreach (var element in Mesh.BoundaryElements)
+        {
+            if (boundaryConditions[element.BoundaryIndex] is not BoundaryCondition<TSpace>.TensorDirichlet bc)
+                continue;
+
+            CalculateFixedElementMass(element, matrix);
+            CalculateFixedTensorElementLoad(element, boundaryValue: p => bc.Value(p,p), rhsVector);
+        }
+        var ss = matrix.GetType().ToString();
+        solver.Matrix = matrix;
+        solver.Solve(rhsVector, outFixedSolution, solverParams);
+    }
+
 
     /// <summary>
     /// Assembles the stiffness matrix contribution: G_ij = ∫_Ω λ(∇φ_i)·(∇φ_j) dΩ.
@@ -334,6 +367,14 @@ public sealed record Assembler<TSpace, TBoundary, TOps>(
         matrix.AddLocalMatrix(mass, indices);
     }
 
+    private void CalculateTensorFixedElementMass(IBoundaryElement<TSpace, TBoundary> element, IGlobalMatrix matrix) 
+    {
+        var mass = Integrator.CalculateLocalMass(element, _ => 1.0);
+        var indices = new int[element.DOF.Count];
+        DofManager.CreateFixedLocalToGlobalIndexMapping(element.DOF, indices);
+        matrix.AddLocalMatrix(mass, indices);
+    }
+
     private void CalculateFixedElementLoad(
         IBoundaryElement<TSpace, TBoundary> element,
         Func<TSpace, double> boundaryValue,
@@ -343,6 +384,23 @@ public sealed record Assembler<TSpace, TBoundary, TOps>(
         int n = element.DOF.Count;
         var load = new double[n];
         Integrator.CalculateLocalLoad(element, boundaryValue, load);
+
+        for (int i = 0; i < n; ++i)
+        {
+            int gi = element.DOF.Dof[i] - DofManager.FreeDofCount;
+            if (gi >= 0) rhsVector[gi] += load[i]; // Ignore free dof
+        }
+    }
+
+    private void CalculateFixedTensorElementLoad(
+        IBoundaryElement<TSpace, TBoundary> element,
+        Func<TSpace, TSpace> boundaryValue,
+        Span<double> rhsVector
+    ) 
+    {
+        int n = element.DOF.Count;
+        var load = new double[n];
+        Integrator.CalculateTensorLocalLoad(element, boundaryValue, load,_ => 1);
 
         for (int i = 0; i < n; ++i)
         {
