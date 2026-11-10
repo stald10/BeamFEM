@@ -1,5 +1,5 @@
 <Solution>
-  <Project Path="../Telma/Telma.csproj" Id="49f750e9-1e47-45f5-9b7a-0be2980598fd" />
-  <Project Path="../TestsFEM/TestsFEM.csproj" Id="9ae53435-0d2b-4fde-9283-d275ecf9da98" />
+  <Project Path="../Telma/Telma.csproj" />
+  <Project Path="../TestsFEM/TestsFEM.csproj" />
   <Project Path="BeamFEM.csproj" />
 </Solution>

@@ -66,6 +66,14 @@ public abstract record BoundaryCondition<TSpace>
     ) : BoundaryCondition<TSpace>();
 
     /// <summary>
+    /// Вторые кравевые в векторной форме
+    /// </summary>
+    /// <param name="Flux"></param>
+    public sealed record TensorNeumann(
+        Func<TSpace, TSpace, TSpace> Flux
+    ) : BoundaryCondition<TSpace>();
+
+    /// <summary>
     /// Краевые условия третьего рода вида:
     /// λ(∂u/∂n) + β * (u - uβ) = 0
     /// </summary>

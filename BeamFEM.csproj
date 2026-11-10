@@ -30,5 +30,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Telma\Telma.csproj" />
+    <ProjectReference Include="Telma\Telma.csproj" />
   </ItemGroup>
 </Project>
